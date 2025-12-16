@@ -1,0 +1,60 @@
+[
+  {
+    "name": "X7A3Q",
+    "code": "SV8a-210",
+
+    "price": 52000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/123"
+  },
+  {
+    "name": "SV3-134-M9K2P",
+    "code": "SV3-1342",
+
+    "price": 88000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/456"
+  },
+  {
+    "name": "SV8a-210-QF8L2",
+    "code": "SV8a-210333",
+    "price": 52000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/123"
+  },
+  {
+    "name": "SV3-13433-A2Z9C",
+    "code": "SV3-13333",
+    "price": 88000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/456"
+  },
+  {
+    "name": "SV8a-21011-R8M4D",
+    "code": "SV8a-21011",
+    "price": 52000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/123"
+  },
+  {
+    "name": "SV3-1340-Y6QW1",
+    "code": "SV3-1340",
+    "price": 88000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/456"
+  },
+  {
+    "name": "SV8a-2108-N5C8H",
+    "code": "SV8a-2108",
+    "price": 52000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/123"
+  },
+  {
+    "name": "SV3-1399-K3F7V",
+    "code": "SV3-1399",
+    "price": 88000,
+    "shop": "Dian 買取",
+    "link": "https://shop.example/item/456"
+  }
+]

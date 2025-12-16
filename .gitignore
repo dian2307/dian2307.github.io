@@ -1,0 +1,6 @@
+# Bỏ qua file chứa khóa bảo mật (RẤT QUAN TRỌNG)
+credentials.json
+
+# Bỏ qua các file hệ thống và file tạm
+.DS_Store
+node_modules/

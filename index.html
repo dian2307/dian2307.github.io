@@ -1,0 +1,95 @@
+<html lang="ja" class=""><head>
+  <meta charset="UTF-8">
+  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&amp;family=Roboto:wght@500;700;900&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+  </style>
+</head>
+<body onload="init()">
+
+  <div class="sticky-header-wrapper">
+    <div class="header-area">
+      <a href="index.html" title="Home">
+        <img src="logo.png" alt="Dian 買取" class="logo-img">
+      </a>
+      <div class="header-cart-btn" onclick="openCart()">
+        🛒
+        <span id="headerCartCount" class="cart-badge-small" style="display:none">0</span>
+      </div>
+    </div>
+
+    <div class="search-outer">
+      <div class="search-bar">
+        <input type="search" id="keyword" list="search-history" placeholder="商品名で検索" enterkeyhint="search" oninput="onSearchInput()">
+        <button class="btn-search" onclick="search()">
+                  <span>検索</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+    <div id="rarityButtonArea" class="rarity-scroll-area" style="display:none;"></div>
+
+    <div class="info-text">
+      <div id="lastUpdatedDisplay">最終更新: 12/16 12:15</div>
+      ※価格は在庫状況等により変動します
+    </div>
+
+    <div class="section-title">新弾買取強化中🔥</div>
+    <div class="guarantee-scroll" id="guaranteeContainer">
+      <div class="g-card"><span class="g-label">PSA10</span><span class="g-price">¥5,000</span></div>
+      <div class="g-card"><span class="g-label">SAR</span><span class="g-price">¥400</span></div>
+      <div class="g-card"><span class="g-label">SR</span><span class="g-price">¥200</span></div>
+      <div class="g-card"><span class="g-label">AR</span><span class="g-price">¥220</span></div>
+      <div class="g-card"><span class="g-label">RR</span><span class="g-price">¥10</span></div>
+    </div>
+
+    <div class="section-title" id="listTitle">検索結果</div>
+    
+    <div id="errorMsg" class="error-msg" style="display: none;"></div>
+
+    <div id="skeletonLoader" class="skeleton-wrapper">
+      <div class="skel-row"><div class="skel-img"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+      <div class="skel-row"><div class="skel-img"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+      <div class="skel-row"><div class="skel-img"></div><div class="skel-info"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    </div>
+
+    <div class="list-container grid-mode" id="resultList"></div>
+  </div>
+
+  <div id="modal" onclick="this.style.display='none'"><img id="modalImage" src=""></div>
+  <div id="toast">✅ <span id="toastMsg"></span></div>
+
+  <!-- Nút Giỏ hàng nổi (Floating Action Button) -->
+  <div id="cartFab" onclick="openCart()">
+    <div class="cart-icon">🛒</div>
+    <span id="cartCount" class="cart-badge">0</span>
+  </div>
+
+  <!-- Modal Giỏ hàng -->
+  <div id="cartModal" class="cart-modal-overlay">
+    <div class="cart-modal-content">
+      <div class="cart-header">
+        <h3>Giỏ hàng thu mua</h3>
+        <button onclick="closeCart()" class="btn-close-cart">✕</button>
+      </div>
+      <div class="cart-body" id="cartBody">
+        <!-- Danh sách sản phẩm sẽ được render vào đây -->
+      </div>
+      <div class="cart-footer">
+        <div class="cart-input-group">
+          <input type="text" id="customerName" class="cart-input" placeholder="Nhập tên của bạn (Bắt buộc)">
+        </div>
+        <div class="cart-total">Tổng cộng: <span id="cartTotalAmount">0</span></div>
+        <button onclick="submitOrder()" class="btn-checkout" id="btnSubmitOrder">Gửi đơn hàng</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+
+
+</body></html>
