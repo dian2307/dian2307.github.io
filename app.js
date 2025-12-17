@@ -126,7 +126,14 @@ function switchCategory(catId, btnElement) {
       })
       .catch(e => {
         console.error(e);
-        if(!hasCache && list) list.innerHTML = `<div style="text-align:center; padding:20px; color:red;">Lỗi tải dữ liệu kho ${catId}</div>`;
+        
+        let errorMsg = `Lỗi tải dữ liệu kho ${catId}`;
+        // Phát hiện lỗi cú pháp JSON (thường gặp nhất do thừa dấu phẩy)
+        if (e.message.includes("JSON") || e.name === "SyntaxError") {
+            errorMsg = `⚠️ Lỗi cú pháp file dữ liệu (data.json).<br>Bạn hãy kiểm tra xem có thừa dấu phẩy (,) ở dòng cuối cùng không?`;
+        }
+
+        if(!hasCache && list) list.innerHTML = `<div style="text-align:center; padding:20px; color:red; line-height:1.6;">${errorMsg}<br><small style="color:#666; font-size:11px;">(${e.message})</small></div>`;
       });
   };
 
@@ -610,7 +617,7 @@ function openTrackModal() {
       <div class="cart-body" id="trackBody" style="padding: 20px;">
         <p style="font-size:13px; color:#666; margin-bottom:15px;">Nhập mã đơn hàng của bạn để kiểm tra trạng thái xử lý.</p>
         <div class="cart-input-group">
-          <input type="number" id="modalOrderId" class="cart-input" placeholder="Ví dụ: 123456">
+          <input type="search" id="modalOrderId" class="cart-input" placeholder="Ví dụ: 123456" inputmode="numeric" pattern="[0-9]*">
         </div>
         <button onclick="trackOrder()" class="btn-checkout">Kiểm tra ngay</button>
       </div>

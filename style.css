@@ -348,7 +348,7 @@ body {
 .item-img {
     width: 80px; height: 80px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: #f8f9fa; border-radius: 12px; overflow: hidden;
+    background: #fff; border-radius: 12px; overflow: hidden;
     position: relative; 
 }
 .rarity-badge {
@@ -515,7 +515,6 @@ body {
 /* === WARNING MARQUEE (CHỮ CHẠY CẢNH BÁO) === */
 .warning-marquee-container {
     max-width: 800px;
-    width: 92%;
     margin: 10px auto 20px;
     background: #fff0f0; /* Nền đỏ nhạt */
     border: 1px solid #dc3545; /* Viền đỏ */
