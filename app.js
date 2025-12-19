@@ -16,6 +16,42 @@ const DATA_SOURCES = {
   'B': "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgD_xLem9qQfsXiQNWlDW0UgQ-pVqqQZ4vlKV9vYhYvntcUbf6ulljWNfRHHJmkAGKRBsc7ofOMHW16PAlBjR2eZO8ADTMCu_3aLPoehFkMFGzuJ-1ld52h6TwUPligPHUXQ39fcibr7-_Hx1ooopRLH8EKyeaVnFqf4xhjom_3_zW_1k2PDhEhC9xNA49Txb0iz0i3ARB1kxTB6FWAcIxCiPq18jSCjGNriQ6Oq5SqLVpJ9hczuFECaEGQBSQEXBCII9zH16gtIepcF8jKiYcgr6IJNQ&lib=McgONiI0ShgZoplbgizBChjUevPycBIIq"  // Link cho Tab Áo (Sheet khác)
 };
 
+// --- LOADER HELPER FUNCTIONS ---
+function showLoader() {
+    const loader = document.getElementById('fullPageLoader');
+    const bar = document.getElementById('loaderBarFill');
+    if (!loader || !bar) return;
+
+    loader.style.display = 'flex';
+    bar.classList.remove('completing');
+    bar.style.width = '0%';
+    
+    void loader.offsetWidth; // Force reflow
+
+    loader.classList.add('show');
+    
+    setTimeout(() => {
+        bar.style.width = '95%'; // Bắt đầu chạy thanh loading "ảo"
+    }, 50);
+}
+
+function hideLoader(isSuccess = true) {
+    const loader = document.getElementById('fullPageLoader');
+    const bar = document.getElementById('loaderBarFill');
+    if (!loader || !bar) return;
+
+    if (isSuccess) {
+        bar.classList.add('completing'); // Chạy nốt đến 100%
+        setTimeout(() => {
+            loader.classList.remove('show');
+            setTimeout(() => { loader.style.display = 'none'; }, 300);
+        }, 500); // Đợi thanh loading chạy xong rồi mới ẩn
+    } else {
+        loader.classList.remove('show');
+        setTimeout(() => { loader.style.display = 'none'; }, 300);
+    }
+}
+
 function init() {
   // Mặc định tải danh mục A khi vào trang
   switchCategory('A');
@@ -53,37 +89,30 @@ function switchCategory(catId, btnElement) {
     btnElement.classList.add('active');
   }
 
-  // 2. Hiển thị trạng thái đang tải
-  // 2. CHIẾN THUẬT CACHE: Hiển thị dữ liệu cũ ngay lập tức (nếu có)
+  // 2. Hiển thị loader và xóa nội dung cũ
+  showLoader();
   const list = document.getElementById('resultList');
-  if(list) list.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Đang tải dữ liệu...</div>';
+  if (list) list.innerHTML = '';
+
   const localKey = `cache_data_${catId}`; // Tên khóa lưu trữ: cache_data_A, cache_data_B
   const cachedData = localStorage.getItem(localKey);
   let hasCache = false;
 
-  // 3. Tải dữ liệu từ nguồn tương ứng
   if (cachedData) {
     try {
       allData = JSON.parse(cachedData);
       hasCache = true;
-      // Render ngay lập tức dữ liệu cũ để khách không phải chờ
-      populateRarityOptions(allData);
-      search();
       console.log(`Đã tải ${allData.length} sản phẩm từ Cache trình duyệt.`);
     } catch (e) {
       console.error("Lỗi đọc cache", e);
+      hasCache = false; // Nếu cache lỗi, coi như không có cache
     }
-  }
-
-  // Nếu không có cache thì mới hiện Loading
-  if (!hasCache && list) {
-    list.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Đang tải dữ liệu...</div>';
   }
 
   // --- HÀM TẢI DỮ LIỆU (Được tách ra để gọi định kỳ) ---
   const fetchData = () => {
     let baseUrl = DATA_SOURCES[catId];
-    if (!baseUrl) return;
+    if (!baseUrl) { hideLoader(false); return; }
     
     // CHỐNG CACHE TRÌNH DUYỆT: Thêm tham số thời gian (?t=...)
     const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
@@ -117,23 +146,28 @@ function switchCategory(catId, btnElement) {
         
         if (cartUpdated) renderCart();
 
+        // Ẩn loader khi thành công
+        hideLoader(true);
+
         // Chỉ render lại danh sách nếu dữ liệu có thay đổi hoặc chưa có dữ liệu (lần đầu)
         if (isDataChanged || !hasCache) {
           populateRarityOptions(allData); 
           search(); // Gọi search để render lại danh sách theo từ khóa hiện tại
           console.log("Dữ liệu đã được cập nhật mới nhất từ Server.");
+        } else if (hasCache) {
+          // Nếu không có gì thay đổi và đã có cache, render lại cache
+          populateRarityOptions(allData);
+          search();
         }
       })
       .catch(e => {
         console.error(e);
-        
+        hideLoader(false); // Ẩn loader khi có lỗi
         let errorMsg = `Lỗi tải dữ liệu kho ${catId}`;
-        // Phát hiện lỗi cú pháp JSON (thường gặp nhất do thừa dấu phẩy)
         if (e.message.includes("JSON") || e.name === "SyntaxError") {
             errorMsg = `⚠️ Lỗi cú pháp file dữ liệu (data.json).<br>Bạn hãy kiểm tra xem có thừa dấu phẩy (,) ở dòng cuối cùng không?`;
         }
-
-        if(!hasCache && list) list.innerHTML = `<div style="text-align:center; padding:20px; color:red; line-height:1.6;">${errorMsg}<br><small style="color:#666; font-size:11px;">(${e.message})</small></div>`;
+        if(list) list.innerHTML = `<div style="text-align:center; padding:20px; color:red; line-height:1.6;">${errorMsg}<br><small style="color:#666; font-size:11px;">(${e.message})</small></div>`;
       });
   };
 
@@ -251,7 +285,7 @@ function renderList(items, reset = false) {
             <div class="item-actions">
               <div class="qty-wrapper">
                 <button class="qty-btn" onclick="changeQty(this, -1)">-</button>
-                <input type="number" class="qty-val" placeholder="" min="1">
+                <input type="number" class="qty-val" placeholder="" min="0">
                 <button class="qty-btn" onclick="changeQty(this, 1)">+</button>
               </div>
               <button onclick="addToCart('${safeCode}', this)" class="btn-action btn-cart">Thêm vào giỏ</button>
@@ -376,8 +410,19 @@ function addToCart(code, btn) {
   const name = itemData.name;
   const price = Number(itemData.price); // Lấy giá thực tế mới nhất
 
-  const input = btn.previousElementSibling.querySelector('.qty-val');
-  const qty = parseInt(input.value) || 1;
+  // SỬA LỖI: Tìm input số lượng an toàn hơn (dùng closest thay vì previousElementSibling)
+  const container = btn.closest('.item-actions');
+  const input = container ? container.querySelector('.qty-val') : null;
+  
+  // YÊU CẦU MỚI: Nếu ô số lượng trống thì báo lỗi và KHÔNG thêm vào giỏ
+  if (!input || !input.value) {
+      showAlert("Vui lòng nhập số lượng<br>trước khi thêm vào giỏ!");
+      if (input) input.focus();
+      return; // Dừng lại tại đây
+  }
+
+  let qty = parseInt(input.value);
+  if (isNaN(qty) || qty <= 0) return; // Bảo vệ thêm trường hợp nhập số 0 hoặc âm
 
   // Kiểm tra xem sản phẩm đã có trong giỏ chưa
   // Kiểm tra cả Mã và Kho (Category) để tránh nhầm lẫn giữa các kho
@@ -412,7 +457,7 @@ function addToCart(code, btn) {
   }
   
   // Reset ô nhập số lượng về rỗng
-  input.value = "";
+  if (input) input.value = "";
 }
 
 function updateCartCount() {
@@ -737,4 +782,18 @@ function renderTrackResult(data) {
 
 function closeTrackModal() {
   document.getElementById('trackModal').style.display = 'none';
+}
+
+// --- ALERT MODAL FUNCTION ---
+function showAlert(msg) {
+  const modal = document.getElementById('alertModal');
+  const msgEl = document.getElementById('alertMessage');
+  if (modal && msgEl) {
+    msgEl.innerHTML = msg;
+    modal.style.display = 'flex';
+  }
+}
+function closeAlert() {
+  const modal = document.getElementById('alertModal');
+  if (modal) modal.style.display = 'none';
 }

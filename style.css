@@ -348,7 +348,7 @@ body {
 .item-img {
     width: 80px; height: 80px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: #fff; border-radius: 12px; overflow: hidden;
+    background: #f8f9fa; border-radius: 12px; overflow: hidden;
     position: relative; 
 }
 .rarity-badge {
@@ -515,6 +515,7 @@ body {
 /* === WARNING MARQUEE (CHỮ CHẠY CẢNH BÁO) === */
 .warning-marquee-container {
     max-width: 800px;
+    width: 92%;
     margin: 10px auto 20px;
     background: #fff0f0; /* Nền đỏ nhạt */
     border: 1px solid #dc3545; /* Viền đỏ */
@@ -770,3 +771,48 @@ body {
     flex: 0 0 50%;
     max-width: 50%;
 }
+
+/* === FULL PAGE LOADER (THANH TẢI DỮ LIỆU) === */
+.loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(252, 252, 252, 0.9); /* var(--bg) with opacity */
+    backdrop-filter: blur(3px);
+    z-index: 10001; /* Above everything else */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+.loader-overlay.show { opacity: 1; visibility: visible; }
+.loader-content { width: 250px; text-align: center; }
+.loader-bar-bg { width: 100%; height: 8px; background: #e9ecef; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+.loader-bar-fill { height: 100%; background: var(--primary-grad); width: 0%; border-radius: 10px; transition: width 2.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.loader-bar-fill.completing { width: 100% !important; transition-duration: 0.4s; }
+.loader-txt { font-size: 11px; font-weight: 700; color: #888; margin-top: 10px; letter-spacing: 0.5px; }
+
+/* === ALERT MODAL (THÔNG BÁO GIỮA MÀN HÌNH) === */
+.alert-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 10002; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+    animation: fadeInAlert 0.2s ease-out;
+}
+.alert-modal-content {
+    background: #fff; padding: 25px 30px; border-radius: 16px;
+    text-align: center; width: 85%; max-width: 320px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transform: scale(0.9); animation: popInAlert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.alert-icon { font-size: 40px; margin-bottom: 15px; }
+.alert-message { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 20px; line-height: 1.5; }
+.btn-alert-close {
+    background: #333; color: #fff; border: none; padding: 10px 30px;
+    border-radius: 30px; font-weight: 700; cursor: pointer; font-size: 13px;
+    transition: background 0.2s;
+}
+.btn-alert-close:hover { background: #000; }
+@keyframes fadeInAlert { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popInAlert { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
