@@ -12,7 +12,8 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdgDU7YlI_Rr
 // --- CẤU HÌNH NGUỒN DỮ LIỆU GIÁ (MỚI) ---
 // Cấu hình nhiều nguồn dữ liệu cho các Tab khác nhau
 const DATA_SOURCES = {
-  'A': "data.json", // Đọc trực tiếp từ file data.json nội bộ
+  'A': "https://script.google.com/macros/s/AKfycbz63TaoShHF1x37llbACyxBlCKNyRqlW9oRiwtWguZIaBqEy69umDHxFPYzDRhuv7_8Yw/exec", // Đọc trực tiếp từ file data.json nội bộ
+ // Sử dụng chung link với Script xử lý đơn hàng để áp dụng bộ lọc
   'B': "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgD_xLem9qQfsXiQNWlDW0UgQ-pVqqQZ4vlKV9vYhYvntcUbf6ulljWNfRHHJmkAGKRBsc7ofOMHW16PAlBjR2eZO8ADTMCu_3aLPoehFkMFGzuJ-1ld52h6TwUPligPHUXQ39fcibr7-_Hx1ooopRLH8EKyeaVnFqf4xhjom_3_zW_1k2PDhEhC9xNA49Txb0iz0i3ARB1kxTB6FWAcIxCiPq18jSCjGNriQ6Oq5SqLVpJ9hczuFECaEGQBSQEXBCII9zH16gtIepcF8jKiYcgr6IJNQ&lib=McgONiI0ShgZoplbgizBChjUevPycBIIq"  // Link cho Tab Áo (Sheet khác)
 };
 
@@ -259,7 +260,10 @@ function renderList(items, reset = false) {
     const price = Number(item.price).toLocaleString();
     const safeName = String(item.name || "").replace(/'/g, "\\'");
     const safeCode = String(item.code || "").replace(/'/g, "\\'");
-    const imgUrl = item.image || "logo.png";
+    
+    // TỰ ĐỘNG HÓA HÌNH ẢNH:
+    // 1. Nếu Sheet có cột image thì dùng. 2. Nếu không, tự động tìm ảnh theo mã Code trong thư mục images/. 3. Cuối cùng là logo.
+    const imgUrl = item.image ? item.image : (item.code ? `images/${item.code}.jpg` : "logo.png");
     
     // Xử lý hiển thị Note (Chú thích) thay vì Rarity Badge
     const noteText = item.note || item.rarity || ""; // Ưu tiên lấy note, fallback về rarity nếu cũ
@@ -268,7 +272,7 @@ function renderList(items, reset = false) {
     return `
       <div class="item-row">
         <div class="item-img">
-          <img src="${imgUrl}" class="product-img" loading="lazy" onclick="showModal('${imgUrl}')" onerror="this.onerror=null;this.src='logo.png';">
+          <img src="${imgUrl}" class="product-img" loading="lazy" onclick="showModal(this.src)" onerror="this.onerror=null;this.src='logo.png';">
         </div>
         <div class="item-info">
           <div class="item-title-row" style="flex-direction: column; align-items: center; justify-content: center; text-align: center;">
@@ -538,6 +542,23 @@ function submitOrder() {
     return;
   }
 
+  // --- CHỐNG SPAM: GIỚI HẠN 4 ĐƠN / 24H ---
+  const SPAM_KEY = 'order_history_log';
+  const MAX_ORDERS = 4;
+  const TIME_WINDOW = 24 * 60 * 60 * 1000; // 24 giờ (ms)
+
+  let orderHistory = JSON.parse(localStorage.getItem(SPAM_KEY) || '[]');
+  const now = Date.now();
+  
+  // Lọc bỏ các mốc thời gian cũ hơn 24h
+  orderHistory = orderHistory.filter(timestamp => now - timestamp < TIME_WINDOW);
+
+  if (orderHistory.length >= MAX_ORDERS) {
+    alert(`Hạn chế: Bạn chỉ được gửi tối đa ${MAX_ORDERS} đơn hàng trong vòng 24 giờ.\nVui lòng thử lại sau.`);
+    nameInput.focus();
+    return;
+  }
+
   // Kiểm tra xem người dùng đã dán link Script chưa
   if (GOOGLE_SCRIPT_URL.includes("https://docs.google.com/spreadsheets/d/18qJBWkzBqQefopUpgPXKH3Xj_aE8P2CCE1sLMeywDLA/edit?gid=0#gid=0")) {
     alert("Lỗi cấu hình: Chưa kết nối với Google Sheet. Vui lòng liên hệ Admin.");
@@ -567,38 +588,52 @@ function submitOrder() {
   // Tạo mã đơn hàng ngẫu nhiên (6 số)
   const orderId = Math.floor(100000 + Math.random() * 900000);
 
-  // Chuẩn bị dữ liệu gửi đi
-  // Tính tổng tiền toàn bộ đơn hàng (để tham khảo hoặc nếu cần dùng sau này)
-  let total = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
-
-  const payload = {
-    orderId: orderId,
-    customerName: customerName,
-    orderDate: new Date().toLocaleString('vi-VN'), // Thêm ngày giờ gửi
-    total: total,
-    items: cartItems // Gửi nguyên mảng object để Apps Script xử lý tách dòng
-  };
-
   const btn = document.getElementById('btnSubmitOrder');
   const originalText = btn.innerText;
   
   // UI Feedback: Hiển thị trạng thái đang xử lý rõ ràng
-  btn.innerText = "⏳ Đang gửi đơn...";
+  btn.innerText = "⏳ Đang kiểm tra...";
   btn.disabled = true;
   btn.style.opacity = "0.7";
   btn.style.cursor = "not-allowed";
 
-  // Gửi dữ liệu sang Google Sheet
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors', // Bật lại no-cors để tránh lỗi Failed to fetch
-    headers: {
-      'Content-Type': 'text/plain'
-    },
-    body: JSON.stringify(payload)
-  }).then(() => {
+  // 1. LẤY IP NGƯỜI DÙNG (Server-side check)
+  fetch('https://api.ipify.org?format=json')
+    .then(res => res.json())
+    .then(data => data.ip)
+    .catch(() => 'unknown') // Nếu lỗi lấy IP thì để unknown
+    .then(userIp => {
+      // 2. Chuẩn bị dữ liệu gửi đi
+      let total = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+      const payload = {
+        orderId: orderId,
+        customerName: customerName,
+        orderDate: new Date().toLocaleString('vi-VN'),
+        total: total,
+        items: cartItems,
+        userIp: userIp // <-- Gửi kèm IP để Server kiểm tra
+      };
+
+      btn.innerText = "⏳ Đang gửi đơn...";
+
+      // 3. Gửi dữ liệu sang Google Sheet
+      return fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        body: JSON.stringify(payload)
+      });
+    })
+    .then(() => {
     // Với no-cors, ta không đọc được phản hồi nên mặc định là thành công
     
+    // Ghi nhận thời gian gửi thành công vào lịch sử
+    orderHistory.push(now);
+    localStorage.setItem(SPAM_KEY, JSON.stringify(orderHistory));
+
     // Sau khi gửi thành công (hoặc request đã đi)
     
     // --- XÓA DỮ LIỆU NGAY LẬP TỨC ---

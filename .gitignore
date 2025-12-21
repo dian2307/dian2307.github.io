@@ -1,4 +1,6 @@
-.DS_Store
+# Windows system files
 Thumbs.db
+Desktop.ini
+
+# Logs
 *.log
-.vscode/
