@@ -4,25 +4,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&amp;family=Roboto:wght@500;700;900&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* --- CONTACT WIDGET (LINE) --- */
-    .contact-widget {
-      position: fixed;
-      bottom: 100px; /* Nằm trên nút giỏ hàng */
-      right: 25px;
-      z-index: 1000;
-    }
-    .contact-main-btn {
-      width: 55px;
-      height: 55px;
-      background: #06c755; /* Màu xanh đặc trưng của LINE */
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 15px rgba(6, 199, 85, 0.4);
-      transition: transform 0.2s;
-    }
-    .contact-main-btn:active { transform: scale(0.9); }
-  </style>
 </head>
 <body onload="init()">
 
@@ -151,11 +132,11 @@
     </div>
   </div>
 
-  <!-- WIDGET LIÊN HỆ (LINE) -->
-  <div class="contact-widget">
-    <!-- Thay link bên dưới bằng Link LINE của bạn (Ví dụ: https://line.me/ti/p/YOUR_ID) -->
-    <a href="https://line.me/ti/p/ULEAHBpgJS" target="_blank" class="contact-main-btn" title="Chat qua LINE">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" style="width: 32px; height: 32px;">
+  <!-- NÚT LIÊN HỆ Ở CHÂN TRANG -->
+  <div class="footer-contact-wrapper">
+    <a href="https://line.me/ti/p/ULEAHBpgJS" target="_blank" rel="noopener noreferrer" class="footer-contact-btn">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE">
+      <span>LINEでお問い合わせ</span>
     </a>
   </div>
 

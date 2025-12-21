@@ -69,7 +69,7 @@ body {
     color: var(--text); 
     text-align: left;
     background-color: var(--bg); 
-    padding-bottom: 80px;
+    padding-bottom: 40px;
     animation: fadeInBody 0.6s ease-out;
 }
 
@@ -816,3 +816,36 @@ body {
 .btn-alert-close:hover { background: #000; }
 @keyframes fadeInAlert { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popInAlert { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* === FOOTER CONTACT BUTTON === */
+.footer-contact-wrapper {
+    padding: 0 15px; /* Canh lề với nội dung trang */
+    margin-top: 40px; /* Khoảng cách với nội dung bên trên */
+}
+
+.footer-contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto; /* Tự động căn giữa */
+    padding: 14px 20px;
+    background: var(--primary-grad); /* Dùng màu đỏ của giao diện */
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.footer-contact-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(164, 6, 6, 0.2);
+}
+.footer-contact-btn img {
+    width: 28px;
+    height: 28px;
+}
