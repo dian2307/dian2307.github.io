@@ -5,6 +5,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&amp;family=Roboto:wght@500;700;900&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
+    /* --- CONTACT WIDGET (LINE) --- */
+    .contact-widget {
+      position: fixed;
+      bottom: 100px; /* Nằm trên nút giỏ hàng */
+      right: 25px;
+      z-index: 1000;
+    }
+    .contact-main-btn {
+      width: 55px;
+      height: 55px;
+      background: #06c755; /* Màu xanh đặc trưng của LINE */
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 15px rgba(6, 199, 85, 0.4);
+      transition: transform 0.2s;
+    }
+    .contact-main-btn:active { transform: scale(0.9); }
   </style>
 </head>
 <body onload="init()">
@@ -49,7 +66,7 @@
 
     <div class="warning-marquee-container">
       <div class="warning-marquee-text">
-        Cảnh báo: Mọi sản phẩm có dấu hiệu lừa đảo đều có thể bị chúng tôi tịch thu sản phẩm không hoàn trả.
+        THÔNG BÁO: Hiện tại chúng tôi đã tạm dừng thu mua Dekki 100 xin cảm ơn các bạn.
       </div>
     </div>
 
@@ -132,6 +149,14 @@
       <div id="alertMessage" class="alert-message"></div>
       <button onclick="closeAlert()" class="btn-alert-close">Đóng</button>
     </div>
+  </div>
+
+  <!-- WIDGET LIÊN HỆ (LINE) -->
+  <div class="contact-widget">
+    <!-- Thay link bên dưới bằng Link LINE của bạn (Ví dụ: https://line.me/ti/p/YOUR_ID) -->
+    <a href="https://line.me/ti/p/ULEAHBpgJS" target="_blank" class="contact-main-btn" title="Chat qua LINE">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" style="width: 32px; height: 32px;">
+    </a>
   </div>
 
   <script src="app.js"></script>
