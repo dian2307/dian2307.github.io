@@ -524,6 +524,16 @@ function addToCart(code, btn) {
   const name = itemData.name;
   const price = Number(itemData.price); // Lấy giá thực tế mới nhất
 
+  // --- LOGIC LẤY ẢNH CHO GIỎ HÀNG ---
+  let imgUrl = itemData.image ? itemData.image : (itemData.code ? `images/${itemData.code}.jpg` : "logo.png");
+  let noteText = itemData.note || itemData.rarity || "";
+  if (currentCategory === 'B' && noteText && noteText.startsWith('http')) {
+      imgUrl = noteText;
+  }
+  if (imgUrl && imgUrl.toLowerCase().trim().startsWith("javascript:")) {
+      imgUrl = "logo.png";
+  }
+
   // SỬA LỖI: Tìm input số lượng an toàn hơn (dùng closest thay vì previousElementSibling)
   const container = btn.closest('.item-actions');
   const input = container ? container.querySelector('.qty-val') : null;
@@ -555,7 +565,8 @@ function addToCart(code, btn) {
       name: name,
       price: price,
       qty: qty,
-      category: currentCategory // Lưu lại sản phẩm này thuộc kho nào (A hoặc B)
+      category: currentCategory, // Lưu lại sản phẩm này thuộc kho nào (A hoặc B)
+      image: imgUrl
     });
   }
 
@@ -617,8 +628,14 @@ function renderCart() {
   container.innerHTML = cartItems.map((item, index) => {
     const subtotal = item.price * item.qty;
     total += subtotal;
+    
+    const safeImgUrl = escapeHtml(item.image || "logo.png");
+
     return `
       <div class="cart-item">
+        <div style="width: 45px; height: 45px; margin-right: 10px; flex-shrink: 0; border: 1px solid #eee; border-radius: 6px; overflow: hidden; background:#fff; display:flex; align-items:center; justify-content:center;">
+            <img src="${safeImgUrl}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='logo.png'">
+        </div>
         <div class="cart-item-info">
           <span class="cart-item-name">${escapeHtml(item.name)}</span>
           <span class="cart-item-meta"> Mã: ${item.code} | SL: ${item.qty}</span>
