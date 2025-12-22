@@ -1,10 +1,48 @@
 let allData = [];
 let filteredData = []; // Lưu trữ kết quả sau khi lọc
 let currentPage = 1;
-const itemsPerPage = 1000; // Tăng số lượng này lên để hiển thị toàn bộ danh sách
+const itemsPerPage = 50; // Tối ưu: Giảm xuống 50 để trang load nhanh mượt hơn
 let cartItems = []; // Mảng lưu trữ giỏ hàng
 let currentCategory = 'A'; // Mặc định là kho A
 let autoRefreshInterval = null; // Biến lưu bộ đếm thời gian tự động cập nhật
+
+// --- HÀM BẢO MẬT: CHỐNG XSS ---
+// Chuyển đổi các ký tự đặc biệt thành dạng an toàn HTML
+function escapeHtml(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// --- HÀM BẢO MẬT: CHỐNG JS INJECTION TRONG ONCLICK ---
+// Xử lý cả dấu gạch chéo ngược (\) và dấu nháy đơn (') để không bị phá vỡ chuỗi JS
+function escapeJsString(text) {
+  if (!text) return "";
+  return String(text).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+// --- HÀM BẢO MẬT: CHỐNG FORMULA INJECTION (CSV INJECTION) ---
+// Ngăn chặn các ký tự kích hoạt công thức trong Excel/Google Sheet (=, +, -, @)
+function sanitizeForSheet(text) {
+  const str = String(text);
+  // Nếu bắt đầu bằng các ký tự đặc biệt, thêm dấu ' vào trước để biến thành văn bản thuần
+  if (/^[\=\+\-\@]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
+// --- HÀM BẢO MẬT: KIỂM TRA TÊN HỢP LỆ (STRICT VALIDATION) ---
+// Chỉ cho phép chữ cái (bao gồm tiếng Việt), số, khoảng trắng. Chặn ký tự đặc biệt.
+function isValidName(text) {
+  // Regex cho phép: Chữ cái (a-z, A-Z), Tiếng Việt có dấu, Số (0-9), Khoảng trắng, Dấu gạch ngang
+  const regex = /^[a-zA-Z0-9\s\u00C0-\u1EF9\-\.]+$/;
+  return regex.test(text);
+}
 
 // --- CẤU HÌNH GOOGLE SHEET ---
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdgDU7YlI_RrIeIWR4AIFWfdixjw-_ChwukFM-Z1iZJSyzkhoTFIAPm4kIhHKEwhh0sg/exec";
@@ -74,6 +112,9 @@ function init() {
 
 function switchCategory(catId, btnElement) {
   currentCategory = catId; // Cập nhật kho hiện tại khi chuyển tab
+  allData = []; // Xóa ngay dữ liệu cũ trong bộ nhớ để tránh hiện nhầm
+  filteredData = []; // Xóa danh sách lọc cũ
+  let isFirstLoad = true; // Biến cờ để kiểm soát hiển thị thông báo
   
   // 0. Xóa bộ đếm giờ cũ nếu có (để tránh chạy chồng chéo khi chuyển tab liên tục)
   if (autoRefreshInterval) {
@@ -128,7 +169,7 @@ function switchCategory(catId, btnElement) {
         const isDataChanged = JSON.stringify(d) !== JSON.stringify(allData);
         
         allData = d;
-        
+
         // Lưu dữ liệu mới vào Cache trình duyệt cho lần sau
         localStorage.setItem(localKey, JSON.stringify(d));
 
@@ -150,6 +191,33 @@ function switchCategory(catId, btnElement) {
         // Ẩn loader khi thành công
         hideLoader(true);
 
+        // --- HIỂN THỊ CẢNH BÁO QUY TẮC KHI VÀO MỤC B ---
+        if (catId === 'B' && isFirstLoad) {
+            // Tính ngày hiện tại + 1 năm 6 tháng (18 tháng)
+            const futureDate = new Date();
+            futureDate.setMonth(futureDate.getMonth() + 16);
+            const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+            const year = futureDate.getFullYear();
+            const dateStr = `${month}/${year}`;
+
+            showAlert(`
+<div style="text-align:left; font-size:15px; line-height:1.5;">
+    <div style="text-align:center; margin-bottom:12px;">
+        <b style="color:#d63031; font-size:18px; text-transform:uppercase;">ĐIỀU KIỆN THU MUA</b>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+        <div>1. JP1, JP2, SQUARE 1P, SQUARE 2P</div>
+        <div style="padding-left: 18px;"><b style="color:#d63031">Hạn từ ${dateStr} trở đi</b></div>
+        <div>2. Hàng bị bấm lỗ (open) trừ -200￥</div>
+        <div>3. Hàng bị mở nắp trừ -300￥</div>
+
+    </div>
+</div>
+
+            `);
+            isFirstLoad = false; // Đánh dấu đã hiện rồi, không hiện lại khi tự động refresh
+        }
+
         // Chỉ render lại danh sách nếu dữ liệu có thay đổi hoặc chưa có dữ liệu (lần đầu)
         if (isDataChanged || !hasCache) {
           populateRarityOptions(allData); 
@@ -168,7 +236,7 @@ function switchCategory(catId, btnElement) {
         if (e.message.includes("JSON") || e.name === "SyntaxError") {
             errorMsg = `⚠️ Lỗi cú pháp file dữ liệu (data.json).<br>Bạn hãy kiểm tra xem có thừa dấu phẩy (,) ở dòng cuối cùng không?`;
         }
-        if(list) list.innerHTML = `<div style="text-align:center; padding:20px; color:red; line-height:1.6;">${errorMsg}<br><small style="color:#666; font-size:11px;">(${e.message})</small></div>`;
+        if(list) list.innerHTML = `<div style="text-align:center; padding:20px; color:red; line-height:1.6;">${errorMsg}<br><small style="color:#666; font-size:11px;">(${escapeHtml(e.message)})</small></div>`;
       });
   };
 
@@ -177,7 +245,7 @@ function switchCategory(catId, btnElement) {
 
   // 4. Cài đặt chạy tự động mỗi 10 giây (10000ms)
   // Web sẽ tự động kiểm tra và cập nhật nếu bạn xóa/sửa dữ liệu trong Sheet
-  autoRefreshInterval = setInterval(fetchData, 10000);
+  autoRefreshInterval = setInterval(fetchData, 60000); // Tối ưu: Tăng lên 60s để giảm tải CPU và mạng
 }
 
 // Hàm tạo option cho thẻ select Rarity dựa trên dữ liệu thật
@@ -220,8 +288,13 @@ function search() {
   renderList(filteredData, true);
 }
 
+let searchTimeout; // Biến để lưu bộ đếm thời gian tìm kiếm
 function onSearchInput() {
-  search();
+  // Tối ưu: Chỉ tìm kiếm sau khi người dùng ngừng gõ 0.3s (Debounce)
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    search();
+  }, 300);
 }
 
 function onRarityChange() {
@@ -258,41 +331,78 @@ function renderList(items, reset = false) {
 
   const html = pageItems.map(item => {
     const price = Number(item.price).toLocaleString();
-    const safeName = String(item.name || "").replace(/'/g, "\\'");
-    const safeCode = String(item.code || "").replace(/'/g, "\\'");
+    // BẢO MẬT: Sử dụng escapeJsString thay vì chỉ replace(')
+    const safeNameForJs = escapeJsString(item.name);
+    const displayName = escapeHtml(item.name); // Tên hiển thị an toàn
+    const safeCodeForJs = escapeJsString(item.code);
     
     // TỰ ĐỘNG HÓA HÌNH ẢNH:
     // 1. Nếu Sheet có cột image thì dùng. 2. Nếu không, tự động tìm ảnh theo mã Code trong thư mục images/. 3. Cuối cùng là logo.
-    const imgUrl = item.image ? item.image : (item.code ? `images/${item.code}.jpg` : "logo.png");
+    let imgUrl = item.image ? item.image : (item.code ? `images/${item.code}.jpg` : "logo.png");
     
     // Xử lý hiển thị Note (Chú thích) thay vì Rarity Badge
-    const noteText = item.note || item.rarity || ""; // Ưu tiên lấy note, fallback về rarity nếu cũ
-    const noteHtml = noteText ? `<div class="product-note">※ ${noteText}</div>` : "";
+    let noteText = item.note || item.rarity || ""; // Ưu tiên lấy note, fallback về rarity nếu cũ
+
+    // --- FIX CHO MỤC B: Nếu cột D (Note/Rarity) là link ảnh thì dùng làm ảnh ---
+    if (currentCategory === 'B' && noteText && noteText.startsWith('http')) {
+        imgUrl = noteText;
+        noteText = ""; // Không hiện text nữa vì đã dùng làm ảnh
+    }
+    
+    // BẢO MẬT: CHỐNG XSS QUA ĐƯỜNG DẪN ẢNH
+    // 1. Chặn giao thức javascript: (nguy cơ cao nhất)
+    if (imgUrl.toLowerCase().trim().startsWith("javascript:")) {
+        imgUrl = "logo.png";
+    }
+    // 2. Mã hóa đường dẫn để không bị phá vỡ thẻ HTML (Attribute Injection)
+    const safeImgUrl = escapeHtml(imgUrl);
+
+    // --- XỬ LÝ CỘT E (DỪNG THU) CHO MỤC B ---
+    let isStop = false;
+    
+    // 1. Lấy giá trị từ các cột có thể là Status
+    let statusVal = String(item.status || item.Status || item.info || item.Info || "").toUpperCase();
+
+    // 2. QUÉT TOÀN BỘ DỮ LIỆU (Phòng trường hợp tên cột trong Sheet khác với 'status'/'info')
+    // Lấy tất cả giá trị của dòng này, chuyển thành chữ in hoa
+    const allRowValues = Object.values(item).map(v => String(v).toUpperCase());
+    // Kiểm tra xem có từ khóa "DỪNG THU" trong bất kỳ ô nào không
+    const containsStopKeyword = allRowValues.some(v => v.includes("DỪNG THU") || v.includes("NGƯNG THU") || v.includes("TẠM NGƯNG"));
+    
+    if (currentCategory === 'B' && (statusVal.includes("DỪNG") || statusVal.includes("NGƯNG") || statusVal.includes("STOP") || containsStopKeyword)) {
+        isStop = true;
+    }
+
+    const noteHtml = noteText ? `<div class="product-note">※ ${escapeHtml(noteText)}</div>` : "";
     
     return `
       <div class="item-row">
         <div class="item-img">
-          <img src="${imgUrl}" class="product-img" loading="lazy" onclick="showModal(this.src)" onerror="this.onerror=null;this.src='logo.png';">
+          <img src="${safeImgUrl}" alt="${escapeHtml(item.name)} - ${escapeHtml(safeCodeForJs)}" class="product-img" loading="lazy" onclick="showModal(this.src)" onerror="this.onerror=null;this.src='logo.png';">
         </div>
         <div class="item-info">
           <div class="item-title-row" style="flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-            <div class="item-title" onclick="copyText('${safeCode}', 'Sao chép mã')">
-              ${item.name}
+            <div class="item-title" onclick="copyText('${escapeHtml(safeCodeForJs)}', 'Sao chép mã')">
+              ${displayName}
             </div>
             <div style="font-size:0.8em; color:#888;">${item.code || ""}</div>
             ${noteHtml}
           </div>
           <div class="item-bottom-row">
-            <div class="price-group" onclick="copyText('${item.price}', 'Sao chép giá')">
-              <span class="price-val">¥${price}</span>
+            <div class="price-group" onclick="copyText('${isStop ? "TẠM NGỪNG THU" : item.price}', 'Sao chép giá')">
+              <span class="price-val" style="${isStop ? 'color:#dc3545; font-size:16px;' : ''}">${isStop ? "TẠM NGỪNG THU" : "¥" + price}</span>
             </div>
             <div class="item-actions">
-              <div class="qty-wrapper">
-                <button class="qty-btn" onclick="changeQty(this, -1)">-</button>
-                <input type="number" class="qty-val" placeholder="" min="0">
-                <button class="qty-btn" onclick="changeQty(this, 1)">+</button>
-              </div>
-              <button onclick="addToCart('${safeCode}', this)" class="btn-action btn-cart">Thêm vào giỏ</button>
+              ${isStop ? 
+                `<div style="width:100%; text-align:center; color:#dc3545; font-weight:bold; font-size:12px; background:#fff0f0; padding:8px; border-radius:8px;">⛔ TẠM NGƯNG</div>` 
+                : 
+                `<div class="qty-wrapper">
+                  <button class="qty-btn" onclick="changeQty(this, -1)">-</button>
+                  <input type="number" class="qty-val" placeholder="" min="0">
+                  <button class="qty-btn" onclick="changeQty(this, 1)">+</button>
+                </div>
+                <button onclick="addToCart('${escapeHtml(safeCodeForJs)}', this)" class="btn-action btn-cart">Thêm vào giỏ</button>`
+              }
             </div>
           </div>
         </div>
@@ -510,7 +620,7 @@ function renderCart() {
     return `
       <div class="cart-item">
         <div class="cart-item-info">
-          <span class="cart-item-name">${item.name}</span>
+          <span class="cart-item-name">${escapeHtml(item.name)}</span>
           <span class="cart-item-meta"> Mã: ${item.code} | SL: ${item.qty}</span>
         </div>
         <div class="cart-item-right">
@@ -540,6 +650,21 @@ function submitOrder() {
     alert("Vui lòng nhập tên của bạn trước khi gửi!");
     nameInput.focus();
     return;
+  }
+
+  // --- BẢO MẬT: KIỂM TRA KÝ TỰ ĐẶC BIỆT ---
+  if (!isValidName(customerName)) {
+    alert("Tên không hợp lệ! Vui lòng không sử dụng ký tự đặc biệt (ví dụ: $ < > { } #).");
+    nameInput.focus();
+    return;
+  }
+
+  // --- BẢO MẬT: HONEYPOT (CHỐNG BOT) ---
+  // Nếu trường ẩn bị điền giá trị (do bot tự động điền), chặn ngay lập tức
+  const hp = document.getElementById('hp_field');
+  if (hp && hp.value) {
+    console.warn("Bot detected via Honeypot!");
+    return; // Dừng âm thầm, không báo lỗi để bot không biết
   }
 
   // --- CHỐNG SPAM: GIỚI HẠN 4 ĐƠN / 24H ---
@@ -577,9 +702,14 @@ function submitOrder() {
   cartItems.forEach(item => {
     // Tìm trong allData hiện tại (đã là mới nhất)
     const freshItem = allData.find(d => String(d.code) === String(item.code));
-    // Nếu tìm thấy và giá khác nhau, cập nhật ngay
-    if (freshItem && Number(freshItem.price) !== Number(item.price)) {
-       item.price = Number(freshItem.price);
+    
+    // BẢO MẬT: Nếu không tìm thấy sản phẩm hoặc giá <= 0 (hack), loại bỏ hoặc báo lỗi
+    if (!freshItem || Number(freshItem.price) <= 0) {
+        console.warn(`Phát hiện sản phẩm không hợp lệ: ${item.name}`);
+        item.price = 0; // Đưa về 0 để không tính tiền
+    } else if (Number(freshItem.price) !== Number(item.price)) {
+        // Nếu tìm thấy và giá khác nhau, cập nhật ngay
+        item.price = Number(freshItem.price);
     }
   });
   // Cập nhật lại tổng tiền hiển thị (nếu cần thiết, dù người dùng sắp gửi đi rồi)
@@ -608,7 +738,7 @@ function submitOrder() {
 
       const payload = {
         orderId: orderId,
-        customerName: customerName,
+        customerName: sanitizeForSheet(customerName), // Làm sạch tên trước khi gửi vào Sheet
         orderDate: new Date().toLocaleString('vi-VN'),
         total: total,
         items: cartItems,
@@ -650,7 +780,7 @@ function submitOrder() {
       <div class="cart-success-view">
         <div class="success-icon-large">🎉</div>
         <h3 style="color: #27ae60; margin:0 0 5px;">Gửi đơn thành công!</h3>
-        <p style="color:#888; font-size:12px;">Cảm ơn ${customerName} đã gửi yêu cầu.</p>
+        <p style="color:#888; font-size:12px;">Cảm ơn ${escapeHtml(customerName)} đã gửi yêu cầu.</p>
         
         <div class="order-id-box" onclick="copyText('${orderId}', 'Đã sao chép mã đơn')">${orderId}</div>
         
@@ -756,15 +886,15 @@ function trackOrder() {
       }
 
       if (res.status === 'error') {
-        body.innerHTML = `<div style="text-align:center; padding:30px; color:red;">❌ ${res.message}</div>`;
+        body.innerHTML = `<div style="text-align:center; padding:30px; color:red;">❌ ${escapeHtml(res.message)}</div>`;
       } else {
         renderTrackResult(res.data);
       }
     })
     .catch(err => {
       console.error(err);
-      let msg = err.message || 'Lỗi kết nối.';
-      if (msg === 'Failed to fetch') {
+      let msg = escapeHtml(err.message || 'Lỗi kết nối.');
+      if (err.message === 'Failed to fetch') {
           msg = 'Lỗi quyền truy cập (CORS).<br>Hãy đảm bảo Script đã được Deploy chế độ "Anyone" (Bất kỳ ai).';
       }
       // Hiển thị lỗi cụ thể nếu có
@@ -784,8 +914,8 @@ function renderTrackResult(data) {
   const itemsHtml = data.items.map(item => `
     <tr>
       <td>
-        <div style="font-weight:700;">${item.name}</div>
-        <div style="font-size:10px; color:#888;">${item.code}</div>
+        <div style="font-weight:700;">${escapeHtml(item.name)}</div>
+        <div style="font-size:10px; color:#888;">${escapeHtml(item.code)}</div>
       </td>
       <td style="text-align:center;">x${item.qty}</td>
       <td style="text-align:right;">¥${(item.price * item.qty).toLocaleString()}</td>
@@ -795,9 +925,9 @@ function renderTrackResult(data) {
   body.innerHTML = `
     <div class="track-info-row">
       <div><b>Mã đơn:</b> #${data.orderId}</div>
-      <div><b>Khách hàng:</b> ${data.customerName}</div>
+      <div><b>Khách hàng:</b> ${escapeHtml(data.customerName)}</div>
       <div><b>Ngày gửi:</b> ${data.orderDate}</div>
-      <div style="margin-top:5px;"><b>Trạng thái:</b> <span class="track-status-badge ${statusClass}">${data.status}</span></div>
+      <div style="margin-top:5px;"><b>Trạng thái:</b> <span class="track-status-badge ${statusClass}">${escapeHtml(data.status)}</span></div>
     </div>
     <div>
       <table class="track-table">

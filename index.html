@@ -1,17 +1,41 @@
-<html lang="ja" class=""><head>
+<html lang="vi" class=""><head>
   <meta charset="UTF-8">
-  <title>Viet + </title>
+  <title>Viet + | Mua Pokemon & Instax Mini</title>
+  <meta name="description" content="Mua Pokemon,  Instax Mini.">
+  
+  <!-- BẢO MẬT: Content Security Policy (CSP) - Chặn tải script/style từ nguồn lạ -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.ipify.org; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <!-- Open Graph Meta Tags cho Facebook -->
-  <meta property="og:title" content="Viet +">
-  <meta property="og:description" content="VIỆT NAM MỚI TING TING ">
+  <meta property="og:title" content="Viet + | Mua Pokemon & Instax Mini">
+  <meta property="og:description" content="Mua Pokemon,  Instax Mini.">
   <meta property="og:image" content="https://dian2307.github.io/logo.png">
   <meta property="og:url" content="https://dian2307.github.io/">
   <meta property="og:type" content="website">
+  
+  <!-- SEO: Thẻ Canonical để xác định link gốc -->
+  <link rel="canonical" href="https://dian2307.github.io/">
+
+  <!-- Favicon cho trình duyệt và tìm kiếm -->
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="favicon.png">
 
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&amp;family=Roboto:wght@500;700;900&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+
+  <!-- SEO: Schema Markup (JSON-LD) giúp Google hiển thị thông tin doanh nghiệp đẹp hơn -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Viet +",
+    "url": "https://dian2307.github.io/",
+    "logo": "https://dian2307.github.io/logo.png",
+    "description": "Mua Pokemon Box, Instax Mini."
+  }
+  </script>
 </head>
 <body onload="init()">
 
@@ -21,15 +45,18 @@
       <div class="loader-bar-bg">
         <div id="loaderBarFill" class="loader-bar-fill"></div>
       </div>
-      <div id="loaderText" class="loader-txt">Đợi xíu nghe đang load...</div>
+      <div id="loaderText" class="loader-txt">Đợi xíu nghe đang loading...</div>
     </div>
   </div>
 
   <div class="sticky-header-wrapper">
     <div class="header-area">
-      <a href="index.html" title="Home">
-        <img src="logo.png" alt="Viet +" class="logo-img">
-      </a>
+      <!-- SEO: Thêm H1 bao quanh logo hoặc ẩn đi để Google nhận diện thương hiệu -->
+      <h1 style="margin:0; line-height:0;">
+        <a href="index.html" title="Trang chủ Viet +">
+          <img src="logo.png" alt="Viet + Thu Mua Pokemon Card & Film" class="logo-img">
+        </a>
+      </h1>
       <div class="header-track-box">
         <input type="text" id="headerOrderId" placeholder="Tra cứu đơn..." onkeypress="if(event.key==='Enter') trackOrder()">
         <button onclick="trackOrder()">🔍</button>
@@ -55,7 +82,7 @@
 
     <div class="warning-marquee-container">
       <div class="warning-marquee-text">
-        THÔNG BÁO: Hiện tại chúng tôi đã tạm dừng thu mua Dekki 100 xin cảm ơn các bạn.
+        THÔNG BÁO: Thu mua film không giới hạn, thanh toán tiền mặt.
       </div>
     </div>
 
@@ -108,6 +135,8 @@
       <div class="cart-footer">
         <div class="cart-input-group">
           <input type="text" id="customerName" class="cart-input" placeholder="Nhập tên của bạn (Bắt buộc)">
+          <!-- Honeypot: Trường ẩn để bẫy bot (Người dùng thật sẽ không thấy) -->
+          <input type="text" id="hp_field" style="position:absolute; left:-9999px; opacity:0; height:0;" tabindex="-1" autocomplete="off">
         </div>
         <div class="cart-total">Tổng cộng: <span id="cartTotalAmount">0</span></div>
         <button onclick="submitOrder()" class="btn-checkout" id="btnSubmitOrder">Gửi đơn hàng</button>
