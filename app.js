@@ -283,6 +283,13 @@ function search() {
     return !keyword || name.includes(keyword) || code.includes(keyword);
   });
 
+  // Sắp xếp: Đưa sản phẩm có buy_flag = 1 lên đầu danh sách
+  filteredData.sort((a, b) => {
+    const flagA = (a.buy_flag == 1) ? 1 : 0;
+    const flagB = (b.buy_flag == 1) ? 1 : 0;
+    return flagB - flagA; // Giảm dần (1 trước, 0 sau)
+  });
+
   // Reset về trang 1 khi tìm kiếm mới
   currentPage = 1;
   renderList(filteredData, true);
@@ -329,7 +336,30 @@ function renderList(items, reset = false) {
   const end = start + itemsPerPage;
   const pageItems = items.slice(start, end);
 
-  const html = pageItems.map(item => {
+  const html = pageItems.map(item => createItemHtml(item)).join("");
+
+  list.insertAdjacentHTML('beforeend', html);
+
+  // Hiển thị nút "Xem thêm" nếu còn dữ liệu
+  if (end < items.length) {
+    const remaining = items.length - end;
+    const btnHtml = `
+      <div id="${loadMoreBtnId}" style="text-align:center; margin: 20px 0 40px; width:100%;">
+        <button onclick="loadMore()" 
+          style="
+            background: #fff; border: 1px solid #ddd; padding: 12px 40px; 
+            border-radius: 30px; font-weight: 700; color: #555; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.2s;
+          ">
+          Xem thêm (còn ${remaining})
+        </button>
+      </div>
+    `;
+    list.insertAdjacentHTML('beforeend', btnHtml);
+  }
+}
+
+function createItemHtml(item) {
     const price = Number(item.price).toLocaleString();
     // BẢO MẬT: Sử dụng escapeJsString thay vì chỉ replace(')
     const safeNameForJs = escapeJsString(item.name);
@@ -337,47 +367,59 @@ function renderList(items, reset = false) {
     const safeCodeForJs = escapeJsString(item.code);
     
     // TỰ ĐỘNG HÓA HÌNH ẢNH:
-    // 1. Nếu Sheet có cột image thì dùng. 2. Nếu không, tự động tìm ảnh theo mã Code trong thư mục images/. 3. Cuối cùng là logo.
     let imgUrl = item.image ? item.image : (item.code ? `images/${item.code}.jpg` : "logo.png");
     
     // Xử lý hiển thị Note (Chú thích) thay vì Rarity Badge
-    let noteText = item.note || item.rarity || ""; // Ưu tiên lấy note, fallback về rarity nếu cũ
+    let noteText = item.note || item.rarity || ""; 
 
     // --- FIX CHO MỤC B: Nếu cột D (Note/Rarity) là link ảnh thì dùng làm ảnh ---
     if (currentCategory === 'B' && noteText && noteText.startsWith('http')) {
         imgUrl = noteText;
-        noteText = ""; // Không hiện text nữa vì đã dùng làm ảnh
+        noteText = ""; 
     }
     
     // BẢO MẬT: CHỐNG XSS QUA ĐƯỜNG DẪN ẢNH
-    // 1. Chặn giao thức javascript: (nguy cơ cao nhất)
     if (imgUrl.toLowerCase().trim().startsWith("javascript:")) {
         imgUrl = "logo.png";
     }
-    // 2. Mã hóa đường dẫn để không bị phá vỡ thẻ HTML (Attribute Injection)
     const safeImgUrl = escapeHtml(imgUrl);
 
     // --- XỬ LÝ CỘT E (DỪNG THU) CHO MỤC B ---
     let isStop = false;
-    
-    // 1. Lấy giá trị từ các cột có thể là Status
     let statusVal = String(item.status || item.Status || item.info || item.Info || "").toUpperCase();
-
-    // 2. QUÉT TOÀN BỘ DỮ LIỆU (Phòng trường hợp tên cột trong Sheet khác với 'status'/'info')
-    // Lấy tất cả giá trị của dòng này, chuyển thành chữ in hoa
     const allRowValues = Object.values(item).map(v => String(v).toUpperCase());
-    // Kiểm tra xem có từ khóa "DỪNG THU" trong bất kỳ ô nào không
     const containsStopKeyword = allRowValues.some(v => v.includes("DỪNG THU") || v.includes("NGƯNG THU") || v.includes("TẠM NGƯNG"));
     
     if (currentCategory === 'B' && (statusVal.includes("DỪNG") || statusVal.includes("NGƯNG") || statusVal.includes("STOP") || containsStopKeyword)) {
         isStop = true;
     }
 
+    // Hiển thị nhãn CẦN THU NHIỀU nếu buy_flag = 1
+    const buyFlagBadge = (item.buy_flag == 1) ? `
+    <div style="position: absolute; top: 6px; right: 6px; z-index: 2; pointer-events: none;">
+        <div style="
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.9);
+            text-align: center;
+            line-height: 1.2;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        ">
+            強<br>化
+        </div>
+    </div>` : "";
+
     const noteHtml = noteText ? `<div class="product-note">※ ${escapeHtml(noteText)}</div>` : "";
     
     return `
       <div class="item-row">
-        <div class="item-img">
+        <div class="item-img" style="position: relative;">
+          ${buyFlagBadge}
           <img src="${safeImgUrl}" alt="${escapeHtml(item.name)} - ${escapeHtml(safeCodeForJs)}" class="product-img" loading="lazy" onclick="showModal(this.src)" onerror="this.onerror=null;this.src='logo.png';">
         </div>
         <div class="item-info">
@@ -408,27 +450,6 @@ function renderList(items, reset = false) {
         </div>
       </div>
     `;
-  }).join("");
-
-  list.insertAdjacentHTML('beforeend', html);
-
-  // Hiển thị nút "Xem thêm" nếu còn dữ liệu
-  if (end < items.length) {
-    const remaining = items.length - end;
-    const btnHtml = `
-      <div id="${loadMoreBtnId}" style="text-align:center; margin: 20px 0 40px; width:100%;">
-        <button onclick="loadMore()" 
-          style="
-            background: #fff; border: 1px solid #ddd; padding: 12px 40px; 
-            border-radius: 30px; font-weight: 700; color: #555; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.2s;
-          ">
-          Xem thêm (còn ${remaining})
-        </button>
-      </div>
-    `;
-    list.insertAdjacentHTML('beforeend', btnHtml);
-  }
 }
 
 function loadMore() {
