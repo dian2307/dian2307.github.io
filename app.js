@@ -210,6 +210,7 @@ function switchCategory(catId, btnElement) {
         <div style="padding-left: 18px;"><b style="color:#d63031">Hạn từ ${dateStr} trở đi</b></div>
         <div>2. Hàng bị bấm lỗ (open) trừ -200￥</div>
         <div>3. Hàng bị mở nắp trừ -300￥</div>
+        <div>4. Hàng có tem chống trộm màu bạc trừ -50￥</div>
 
     </div>
 </div>
